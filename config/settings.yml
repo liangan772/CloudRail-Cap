@@ -1,4 +1,4 @@
-# Settings for discourse-cap-verification.
+# Settings for the CloudRail-Cap plugin.
 #
 # Everything lives under the top-level `plugins:` key so it appears in the
 # "Plugins" section of /admin/site_settings. Setting names are all prefixed

@@ -116,8 +116,8 @@ the token. Cap tokens are single-use, so a captured token cannot be replayed.
 
 ```bash
 # From your Discourse checkout
-bundle exec rspec plugins/discourse-cap-verification/spec
-bundle exec rubocop plugins/discourse-cap-verification
+bundle exec rspec plugins/CloudRail-Cap/spec
+bundle exec rubocop plugins/CloudRail-Cap
 ```
 
 The admin screen is written against the `AdminPageHeader` / `DButton` component

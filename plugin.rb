@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-# name: discourse-cap-verification
+# name: CloudRail-Cap
 # about: Self-hosted human verification for Discourse using Cap (a proof-of-work CAPTCHA). Adds a Cap checkbox to signup and login, verifies tokens server-side, and ships an admin settings screen.
 # version: 1.0.0
 # authors: WorkBuddy AI
@@ -14,7 +14,10 @@ register_asset "stylesheets/cap-verification.scss"
 register_svg_icon "shield-halved"
 
 module ::DiscourseCap
-  PLUGIN_NAME = "discourse-cap-verification"
+  # Must equal the plugin directory name, which is what the git clone in
+  # containers/app.yml produces. Discourse warns and misregisters the plugin
+  # in /admin/plugins when this and the directory disagree.
+  PLUGIN_NAME = "CloudRail-Cap"
 end
 
 # `lib/` is not autoloaded, so these are required explicitly. Files under

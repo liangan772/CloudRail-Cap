@@ -7,7 +7,7 @@
 <script>
   import Component from "@glimmer/component";
   import { service } from "@ember/service";
-  import CapWidget from "discourse/plugins/discourse-cap-verification/discourse/components/cap-widget";
+  import CapWidget from "discourse/plugins/CloudRail-Cap/discourse/components/cap-widget";
 
   /**
    * Injects the Cap checkbox above the login form.
