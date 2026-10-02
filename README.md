@@ -41,7 +41,20 @@ hooks:
     - exec:
         cd: $home/plugins
         cmd:
-          - git clone https://github.com/liangan772/CloudRail-Cap.git
+          # The trailing directory name is required, not optional.
+          # Discourse derives the plugin's folder name from the clone target
+          # and compares it to `# name:` in plugin.rb, warning if they differ.
+          # Cloning without it would produce `CloudRail-Cap`, which happens to
+          # match here — but pinning it keeps the two guaranteed in sync.
+          - git clone https://github.com/liangan772/CloudRail-Cap.git CloudRail-Cap
+```
+
+If you prefer to clone manually, name the destination the same way:
+
+```bash
+cd /var/discourse
+git clone https://github.com/liangan772/CloudRail-Cap.git plugins/CloudRail-Cap
+ls plugins/CloudRail-Cap/plugin.rb   # must exist; otherwise you have an extra directory level
 ```
 
 Then rebuild:
