@@ -105,8 +105,8 @@ the token. Cap tokens are single-use, so a captured token cannot be replayed.
 | Path | Role |
 | --- | --- |
 | `plugin.rb` | Entry point: settings, controller extensions, admin route. |
-| `app/services/discourse_cap/verify.rb` | Token redemption, throttling, bypass rules. |
-| `app/services/discourse_cap/config.rb` | Single source of truth for "is Cap usable?" plus the client payload. |
+| `lib/discourse_cap/verify.rb` | Token redemption, throttling, bypass rules. |
+| `lib/discourse_cap/config.rb` | Single source of truth for "is Cap usable?" plus the client payload. |
 | `app/controllers/discourse_cap/admin_controller.rb` | Admin settings API and connection test. |
 | `assets/javascripts/.../components/cap-widget.gjs` | The checkbox, mirrors the token into `cap_token`. |
 | `assets/javascripts/.../connectors/*/cap-checkbox.gjs` | Injects the widget into the signup and login outlets. |

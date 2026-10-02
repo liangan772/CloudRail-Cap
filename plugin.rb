@@ -13,16 +13,18 @@ enabled_site_setting :cap_verification_enabled
 register_asset "stylesheets/cap-verification.scss"
 register_svg_icon "shield-halved"
 
+module ::DiscourseCap
+  PLUGIN_NAME = "discourse-cap-verification"
+end
+
+# `lib/` is not autoloaded, so these are required explicitly. Files under
+# `app/` (the model, the controller and the serializer concern used below) are
+# owned by Zeitwerk and must NOT be require_relative'd - doing so raises
+# Zeitwerk::NameError during boot.
+require_relative "lib/discourse_cap/config"
+require_relative "lib/discourse_cap/verify"
+
 after_initialize do
-  module ::DiscourseCap
-    PLUGIN_NAME = "discourse-cap-verification"
-  end
-
-  require_relative "app/services/discourse_cap/config"
-  require_relative "app/services/discourse_cap/verify"
-  require_relative "app/models/discourse_cap/verification_log"
-  require_relative "app/controllers/discourse_cap/admin_controller"
-
   # ---------------------------------------------------------------------
   # Server-side enforcement
   # ---------------------------------------------------------------------
