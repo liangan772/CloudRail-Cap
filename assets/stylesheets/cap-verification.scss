@@ -1,0 +1,174 @@
+.cap-verification-widget {
+  margin: 1em 0;
+
+  cap-widget {
+    display: block;
+  }
+
+  .cap-verification-status {
+    margin: 0.5em 0 0;
+    font-size: var(--font-down-1);
+    color: var(--primary-medium);
+
+    &.is-solved {
+      color: var(--success);
+    }
+  }
+
+  &.cap-verification-misconfigured {
+    padding: 0.75em 1em;
+    border: 1px solid var(--danger);
+    border-radius: var(--d-border-radius);
+    background: var(--danger-low);
+    color: var(--danger);
+    font-size: var(--font-down-1);
+  }
+}
+
+/* ---- Admin settings screen ---- */
+.cap-verification-admin {
+  max-width: 48rem;
+
+  .admin-page-header h1 {
+    margin-bottom: 0.25em;
+  }
+
+  .admin-page-header__description {
+    color: var(--primary-medium);
+    margin-bottom: 1.5em;
+  }
+
+  .cap-status-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75em;
+    margin-bottom: 1.5em;
+  }
+
+  .cap-status-badge {
+    display: inline-block;
+    padding: 0.25em 0.75em;
+    border-radius: 1em;
+    font-size: var(--font-down-1);
+    font-weight: 600;
+
+    &.is-running {
+      background: var(--success-low);
+      color: var(--success);
+    }
+
+    &.is-incomplete {
+      background: var(--highlight-low);
+      color: var(--highlight);
+    }
+
+    &.is-disabled {
+      background: var(--primary-low);
+      color: var(--primary-medium);
+    }
+  }
+
+  .cap-status-meta {
+    color: var(--primary-medium);
+    font-size: var(--font-down-1);
+  }
+
+  .cap-section {
+    border: 1px solid var(--primary-low);
+    border-radius: var(--d-border-radius);
+    padding: 1em 1.25em 1.25em;
+    margin: 0 0 1.25em;
+
+    legend {
+      padding: 0 0.5em;
+      font-weight: 700;
+    }
+  }
+
+  .cap-row {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+    margin-bottom: 1em;
+
+    > label {
+      flex: 0 0 14rem;
+      padding-top: 0.35em;
+      font-weight: 500;
+    }
+  }
+
+  .cap-row-inline {
+    > label {
+      flex: none;
+      padding-top: 0;
+    }
+  }
+
+  .cap-control {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .cap-input {
+    width: 100%;
+    max-width: 30rem;
+  }
+
+  .cap-input-small {
+    max-width: 8rem;
+  }
+
+  .cap-hint {
+    margin: 0.35em 0 0;
+    font-size: var(--font-down-1);
+    color: var(--primary-medium);
+  }
+
+  .cap-hint-ok {
+    color: var(--success);
+  }
+
+  .cap-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    cursor: pointer;
+  }
+
+  .cap-actions {
+    display: flex;
+    gap: 0.75em;
+    margin-bottom: 1.25em;
+  }
+
+  .cap-notice {
+    padding: 0.75em 1em;
+    border-radius: var(--d-border-radius);
+    margin-bottom: 1.25em;
+
+    &.is-success {
+      background: var(--success-low);
+      color: var(--success);
+    }
+
+    &.is-error {
+      background: var(--danger-low);
+      color: var(--danger);
+    }
+
+    &.is-info {
+      background: var(--primary-low);
+    }
+  }
+
+  .cap-howto {
+    border: none;
+    padding: 0;
+
+    p {
+      color: var(--primary-medium);
+      white-space: pre-line;
+    }
+  }
+}

@@ -1,0 +1,72 @@
+# Settings for discourse-cap-verification.
+#
+# Everything lives under the top-level `plugins:` key so it appears in the
+# "Plugins" section of /admin/site_settings. Setting names are all prefixed
+# with `cap_verification_` so the "Settings" button on the plugin's
+# /admin/plugins entry filters to exactly this plugin.
+#
+# `client: true` means the value is also shipped to the Ember client. Only the
+# instance URL, site key and theme are needed in the browser - the secret key
+# deliberately stays server-side and must NOT be marked client.
+
+plugins:
+  cap_verification_enabled:
+    default: false
+    client: true
+
+  cap_verification_instance_url:
+    default: ""
+    client: true
+    regex: "^$|^https?://[^\\s]+$|^[a-zA-Z0-9.-]+(:\\d+)?(/.*)?$"
+
+  cap_verification_site_key:
+    default: ""
+    client: true
+
+  cap_verification_secret_key:
+    default: ""
+    secret: true
+    client: false
+
+  cap_verification_widget_script_url:
+    default: "https://cdn.jsdelivr.net/npm/cap-widget@latest"
+    client: true
+
+  cap_verification_widget_theme:
+    default: "light"
+    type: enum
+    choices:
+      - "light"
+      - "dark"
+      - "auto"
+    client: true
+
+  cap_verification_protect_signup:
+    default: true
+    client: false
+
+  cap_verification_protect_login:
+    default: true
+    client: false
+
+  cap_verification_skip_for_staff:
+    default: true
+    client: false
+
+  cap_verification_min_trust_level:
+    default: 0
+    min: 0
+    max: 4
+    client: false
+
+  cap_verification_max_attempts:
+    default: 10
+    min: 1
+    max: 200
+    client: false
+
+  cap_verification_timeout_seconds:
+    default: 8
+    min: 1
+    max: 60
+    client: false

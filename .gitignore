@@ -1,0 +1,12 @@
+*.gem
+*.rbc
+.bundle
+.config
+.yardoc
+node_modules
+tmp
+.history
+byebug_history
+.rspec_status
+*.log
+.DS_Store

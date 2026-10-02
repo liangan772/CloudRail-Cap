@@ -1,0 +1,68 @@
+en:
+  site_settings:
+    cap_verification_enabled: "Enable Cap human verification. Blocks bot signups and logins with a self-hosted proof-of-work CAPTCHA."
+    cap_verification_instance_url: "URL of your Cap instance, e.g. https://cap.example.com (must be reachable by visitors)."
+    cap_verification_site_key: "Cap site key from your Cap console (not the admin key)."
+    cap_verification_secret_key: "Cap secret key from your Cap console. Kept server-side; never sent to the browser."
+    cap_verification_widget_theme: "Colour scheme of the Cap checkbox widget."
+    cap_verification_widget_script_url: "URL of the cap-widget script. Defaults to the jsDelivr CDN; point this at a self-hosted copy for maximum privacy."
+    cap_verification_protect_signup: "Require Cap verification on the signup form."
+    cap_verification_protect_login: "Require Cap verification on the login form."
+    cap_verification_skip_for_staff: "Never challenge staff accounts."
+    cap_verification_min_trust_level: "Skip verification for logged-in users at or above this trust level (0 = challenge everyone)."
+    cap_verification_max_attempts: "Maximum failed verifications per IP per minute before the IP is throttled."
+    cap_verification_timeout_seconds: "Timeout when calling the Cap server to verify a token."
+
+  cap_verification:
+    errors:
+      missing_token: "Human verification is required. Please tick the verification box and try again."
+      invalid_token: "Human verification failed or expired. Please tick the box again."
+      not_configured: "Human verification is misconfigured on this site. Please contact an administrator."
+      token_too_long: "The verification token was malformed."
+      too_many_attempts: "Too many failed verification attempts. Please wait a minute and try again."
+    admin:
+      title: "Cap Verification"
+      nav_title: "Cap Verification"
+      header: "Cap human verification"
+      description: "Protect signup and login with Cap, a self-hosted proof-of-work CAPTCHA. No Google, no tracking, all data stays on your own server."
+      status_running: "Active - visitors are being challenged."
+      status_incomplete: "Incomplete - enabled but credentials are missing, so the challenge is not shown."
+      status_disabled: "Disabled."
+      setup_heading: "Cap server"
+      instance_url: "Instance URL"
+      instance_url_help: "Public base URL of your Cap standalone server, for example https://cap.example.com."
+      site_key: "Site key"
+      site_key_help: "Found in the Cap console. This one is public and is sent to the browser."
+      secret_key: "Secret key"
+      secret_key_help: "Also from the Cap console. Stored server-side only. Do not confuse this with your ADMIN_KEY."
+      secret_key_placeholder: "Leave blank to keep the current key"
+      secret_key_set: "A secret key is currently saved."
+      widget_heading: "Widget"
+      widget_theme: "Widget theme"
+      widget_theme_help: "light, dark, or auto to follow the user's system preference."
+      widget_script_url: "Widget script URL"
+      widget_script_url_help: "Where to load cap-widget from. Keep the jsDelivr default, or host the file yourself and point here."
+      protection_heading: "Protection"
+      protect_signup: "Challenge signups"
+      protect_login: "Challenge logins"
+      skip_for_staff: "Exempt staff members"
+      min_trust_level: "Exempt users at or above trust level"
+      min_trust_level_help: "0 means every visitor is challenged. Discord staff are handled by the setting above."
+      advanced_heading: "Advanced"
+      max_attempts: "Failed attempts allowed per minute per IP"
+      timeout_seconds: "Verification request timeout (seconds)"
+      failed_last_24h: "Failed verifications in the last 24 hours: %{count}"
+      save: "Save changes"
+      saving: "Saving..."
+      saved: "Settings saved."
+      test: "Test connection"
+      testing: "Testing..."
+      connection_ok: "Connected to the Cap server successfully."
+      not_configured: "Fill in the instance URL, site key and secret key first."
+      how_to_heading: "Quick start"
+      how_to_body: |
+        1. Run the Cap standalone server and open its console.
+        2. Create a site key and copy both the site key and the secret key.
+        3. Paste the instance URL and both keys, then enable the plugin.
+        4. Optional: self-host <code>cap-widget</code> and set the widget script URL
+           so no third-party CDN is contacted.
