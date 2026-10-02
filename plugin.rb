@@ -83,16 +83,25 @@ after_initialize do
   # Admin configuration screen
   # ---------------------------------------------------------------------
   #
-  # `use_new_show_route: false` maps the slug onto the `adminPlugins.<slug>`
-  # route, i.e. /admin/plugins/cap-verification. Discourse resolves that route
-  # to `assets/javascripts/discourse/templates/admin/plugins/<slug>.gjs`, with
-  # `routes/admin-plugins-<slug>.js` supplying the model.
-  add_admin_route("cap_verification.admin.title", "cap-verification", {
+  # The slug becomes the Ember route name `adminPlugins.<slug>`, and Discourse
+  # derives the frontend file names from it by inserting `admin-plugins-`:
+  #
+  #   routes/admin-plugins-<slug>.js
+  #   controllers/admin-plugins-<slug>.js
+  #   templates/admin/plugins-<slug>.gjs
+  #
+  # (Note: hyphenated slugs do work - see discourse-data-explorer's
+  # "explorer-index". The earlier blank page came from a missing controller and
+  # a template that used @model without the route spreading the payload.)
+  #
+  # A single hyphen-free word keeps the generated names unambiguous, and the
+  # public URL stays /admin/plugins/capverification.
+  add_admin_route("cap_verification.admin.title", "capverification", {
     use_new_show_route: false,
   })
 
   Discourse::Application.routes.append do
-    scope "/admin/plugins/cap-verification", constraints: StaffConstraint.new do
+    scope "/admin/plugins/capverification", constraints: StaffConstraint.new do
       get "/" => "discourse_cap/admin#index"
       put "/" => "discourse_cap/admin#update"
       post "/test" => "discourse_cap/admin#test"

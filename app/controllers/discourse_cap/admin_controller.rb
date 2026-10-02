@@ -2,7 +2,7 @@
 
 module DiscourseCap
   # Admin settings screen for the plugin. Mounted at
-  # /admin/plugins/cap-verification and rendered by a .gjs template.
+  # /admin/plugins/capverification and rendered by a .gjs template.
   #
   # Site settings can also be edited at /admin/site_settings (under "Plugins"),
   # but this screen gives a focused, self-documenting setup flow.

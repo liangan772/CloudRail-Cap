@@ -38,6 +38,7 @@ en:
       test: "Test connection"
       saved: "Settings saved."
       connection_ok: "Connected to the Cap server successfully."
+      connection_failed: "Could not reach the Cap server. Check the instance URL and keys."
       not_configured: "Fill in the instance URL, site key and secret key first."
       how_to_heading: "Quick start"
       how_to_body: "Run the Cap standalone server, create a site key in its console, copy the site key and secret key, then paste them above and enable the plugin."
