@@ -1,11 +1,13 @@
 # frozen_string_literal: true
 
-# Discourse plugins declare migrations without pinning an ActiveRecord
-# migration version. Pinning a version such as [7.0] makes the migration class
-# resolve against a compatibility shim that is not guaranteed to exist in the
-# Rails version a given Discourse release ships, which fails the whole
-# `rake db:migrate` run at bootstrap.
-class CreateDiscourseCapVerificationLogs < ActiveRecord::Migration
+# Rails 8+ REQUIRES the version bracket. `class Foo < ActiveRecord::Migration`
+# raises "Directly inheriting from ActiveRecord::Migration is not supported" and
+# aborts `rake db:migrate`, which fails the whole bootstrap.
+#
+# Match the number to the Rails release the target Discourse ships. Discourse
+# main currently runs Rails 8.1, so this is [8.1]. If a site pins an older
+# Discourse on Rails 8.0, change this to [8.0].
+class CreateDiscourseCapVerificationLogs < ActiveRecord::Migration[8.1]
   def change
     create_table :discourse_cap_verification_logs do |t|
       t.string :remote_ip, null: false
