@@ -1,4 +1,4 @@
-# discourse-cap-verification
+# CloudRail-Cap
 
 Self-hosted human verification (CAPTCHA) for Discourse, powered by
 [Cap](https://trycap.dev/zh/guide) — a proof-of-work CAPTCHA with no Google, no
@@ -41,7 +41,7 @@ hooks:
     - exec:
         cd: $home/plugins
         cmd:
-          - git clone https://github.com/your-org/discourse-cap-verification.git
+          - git clone https://github.com/liangan772/CloudRail-Cap.git
 ```
 
 Then rebuild:

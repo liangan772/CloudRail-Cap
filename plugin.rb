@@ -4,7 +4,7 @@
 # about: Self-hosted human verification for Discourse using Cap (a proof-of-work CAPTCHA). Adds a Cap checkbox to signup and login, verifies tokens server-side, and ships an admin settings screen.
 # version: 1.0.0
 # authors: WorkBuddy AI
-# url: https://github.com/trycap/cap
+# url: https://github.com/liangan772/CloudRail-Cap
 # required_version: 3.3.0
 # transpile_js: true
 
