@@ -30,6 +30,7 @@
   import { tracked } from "@glimmer/tracking";
   import { action } from "@ember/object";
   import { on } from "@ember/modifier";
+  import { service } from "@ember/service";
   import { ajax } from "discourse/lib/ajax";
   import { i18n } from "discourse-i18n";
 
@@ -56,6 +57,8 @@
    * Cap docs: https://trycap.dev/zh/guide
    */
   export default class CapWidget extends Component {
+    @service currentUser;
+
     /** idle | verifying | verified | failed */
     @tracked state = "idle";
 
@@ -88,9 +91,18 @@
       return this.config?.widget_theme || "light";
     }
 
-    /** True when the plugin is on but the admin has not finished setup. */
+    /**
+     * The plugin is switched on but the credentials are incomplete, so there is
+     * nothing to verify against. Only staff are told - showing this to every
+     * visitor would just look like a broken site. This is what makes a
+     * half-configured install diagnosable instead of silently blank.
+     */
     get misconfigured() {
-      return Boolean(this.config?.enabled) && !this.endpoint;
+      return (
+        Boolean(this.config?.plugin_enabled) &&
+        !this.config?.configured &&
+        Boolean(this.currentUser?.staff)
+      );
     }
 
     get endpoint() {

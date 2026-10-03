@@ -31,8 +31,10 @@
     }
 
     get shouldShow() {
+      // See the signup connector: gate on the raw admin switch, not on
+      // `enabled`, so a half-configured site is not silently blank.
       return Boolean(
-        this.config?.enabled && this.config?.protect_login !== false
+        this.config?.plugin_enabled && this.config?.protect_login !== false
       );
     }
   }

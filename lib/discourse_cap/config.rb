@@ -21,8 +21,18 @@ module DiscourseCap
 
       # Sent to the client through the site serializer. The secret key is
       # deliberately absent.
+      #
+      # Three separate flags on purpose. `plugin_enabled` is the raw admin
+      # switch, `configured?` means every credential is present, and `enabled`
+      # is the two combined. The client needs them apart: gating purely on
+      # `enabled` makes a half-configured site render nothing at all, which
+      # looks identical to a broken plugin. The widget uses `plugin_enabled` to
+      # decide whether to appear, and shows staff a notice when `configured` is
+      # false.
       def client_payload
         {
+          plugin_enabled: SiteSetting.cap_verification_enabled,
+          configured: configured?,
           enabled: enabled?,
           protect_signup: SiteSetting.cap_verification_protect_signup,
           protect_login: SiteSetting.cap_verification_protect_login,

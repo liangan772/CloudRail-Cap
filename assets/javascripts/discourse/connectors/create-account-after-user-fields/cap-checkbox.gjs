@@ -35,8 +35,13 @@
     }
 
     get shouldShow() {
+      // Gate on the raw admin switch, NOT on `enabled` (which also requires
+      // every credential to be present). Gating on `enabled` made a
+      // half-configured site render absolutely nothing, which is
+      // indistinguishable from a broken plugin. The widget itself decides what
+      // to show.
       return Boolean(
-        this.config?.enabled && this.config?.protect_signup !== false
+        this.config?.plugin_enabled && this.config?.protect_signup !== false
       );
     }
   }
