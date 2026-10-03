@@ -123,7 +123,62 @@ the token. Cap tokens are single-use, so a captured token cannot be replayed.
 | `app/controllers/discourse_cap/admin_controller.rb` | Admin settings API and connection test. |
 | `assets/javascripts/.../components/cap-widget.gjs` | The checkbox, mirrors the token into `cap_token`. |
 | `assets/javascripts/.../connectors/*/cap-checkbox.gjs` | Injects the widget into the signup and login outlets. |
-| `assets/javascripts/.../templates/admin/plugins/cap-verification.gjs` | Admin settings screen. |
+| `assets/javascripts/.../cap-verification-route-map.js` | Registers `adminPlugins.capverification`. **Required** — without it the plugin list shows a "broken route" error. |
+| `assets/javascripts/.../routes/admin-plugins-capverification.js` | Loads the settings payload and spreads it onto the controller. |
+| `assets/javascripts/.../controllers/admin-plugins-capverification.js` | Admin screen state and actions. |
+| `assets/javascripts/.../templates/admin/plugins-capverification.gjs` | Admin settings screen. |
+| `config/locales/client.*.yml` | Frontend strings. **Must be nested under `js:`** or lookups fail. |
+| `config/locales/server.*.yml` | Site-setting labels and server-side error messages. |
+
+## Troubleshooting
+
+### `Unable to configure link to '...'. Ensure ad-blockers are disabled and try reloading the page.`
+
+This is core's `admin.plugins.broken_route`. Despite the wording it is almost
+never an ad blocker — it means Discourse could not resolve the plugin's admin
+route in the frontend router:
+
+```js
+// frontend/discourse/app/lib/admin-utilities.js
+export function adminRouteValid(router, adminRoute) {
+  try {
+    router.urlFor(adminRoute.full_location); // "adminPlugins.capverification"
+    return true;
+  } catch {
+    return false;
+  }
+}
+```
+
+`add_admin_route` only tells the **server** to advertise a link; the route itself
+has to be declared in a `*-route-map.js` file. Check that
+`assets/javascripts/discourse/cap-verification-route-map.js` exists, declares
+`resource: "admin.adminPlugins"`, and that its `this.route("...")` name matches
+the second argument of `add_admin_route` in `plugin.rb` (`capverification`).
+
+If the `'...'` part shows a raw key such as `[zh_CN.cap_verification.admin.title]`
+rather than a readable name, the label is also untranslated. That happens when
+the locale file is missing the `js:` wrapper, or when the active locale has no
+translation — see below.
+
+### Labels show as `[zh_CN.something]` instead of text
+
+Two causes, both easy to hit:
+
+1. **Missing `js:` wrapper.** Client locale files must nest their keys under
+   `js:`, because the contents are merged into the JS bundle:
+
+   ```yaml
+   en:
+     js:
+       cap_verification:
+         admin:
+           title: "Cap Verification"
+   ```
+
+2. **Missing translation for the active locale.** Discourse ships `en` here plus
+   `zh_CN`. If your site runs another locale, add a `client.<locale>.yml` with the
+   same key set (the `en` file is the reference).
 
 ## Development
 
@@ -135,7 +190,7 @@ bundle exec rubocop plugins/CloudRail-Cap
 
 The admin screen is written against the `AdminPageHeader` / `DButton` component
 set. If core renames those, update
-`assets/javascripts/discourse/templates/admin/plugins/cap-verification.gjs`.
+`assets/javascripts/discourse/templates/admin/plugins-capverification.gjs`.
 
 ## Licence
 

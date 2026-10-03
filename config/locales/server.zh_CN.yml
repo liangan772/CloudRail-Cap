@@ -1,0 +1,68 @@
+zh_CN:
+  site_settings:
+    cap_verification_enabled: "启用 Cap 人机验证。用自托管的 PoW 验证码拦截机器人注册与登录。"
+    cap_verification_instance_url: "Cap 实例地址，例如 https://cap.example.com（必须能被访客访问）。"
+    cap_verification_site_key: "Cap 控制台里的站点密钥（不是 admin key）。"
+    cap_verification_secret_key: "Cap 控制台里的私钥。仅保存在服务端，不会发送到浏览器。"
+    cap_verification_widget_theme: "Cap 验证框的颜色主题。"
+    cap_verification_widget_script_url: "cap-widget 脚本地址。默认走 jsDelivr CDN；如需最大隐私可改为自托管地址。"
+    cap_verification_protect_signup: "注册表单要求通过 Cap 验证。"
+    cap_verification_protect_login: "登录表单要求通过 Cap 验证。"
+    cap_verification_skip_for_staff: "不对管理人员发起验证。"
+    cap_verification_min_trust_level: "信任等级达到此级别的已登录用户跳过验证（0 = 所有人都要验证）。"
+    cap_verification_max_attempts: "单个 IP 每分钟允许的最大验证失败次数，超过即限流。"
+    cap_verification_timeout_seconds: "调用 Cap 服务端校验 token 时的超时时间。"
+
+  cap_verification:
+    errors:
+      missing_token: "需要完成人机验证。请勾选验证框后重试。"
+      invalid_token: "人机验证失败或已过期，请重新勾选验证框。"
+      not_configured: "本站的人机验证配置有误，请联系管理员。"
+      token_too_long: "验证 token 格式不正确。"
+      too_many_attempts: "验证失败次数过多，请等待一分钟后重试。"
+    admin:
+      title: "Cap 人机验证"
+      nav_title: "Cap 人机验证"
+      header: "Cap 人机验证"
+      description: "使用 Cap（自托管的 PoW 验证码）保护注册与登录。不依赖 Google，不做追踪，数据全部留在你自己的服务器上。"
+      status_running: "已生效 —— 访客正在接受验证。"
+      status_incomplete: "未完成 —— 已启用但缺少凭据，验证不会显示。"
+      status_disabled: "已禁用。"
+      setup_heading: "Cap 服务端"
+      instance_url: "实例地址"
+      instance_url_help: "你的 Cap standalone 服务的公开地址，例如 https://cap.example.com。"
+      site_key: "站点密钥（site key）"
+      site_key_help: "在 Cap 控制台创建。这一项是公开的，会发送到浏览器。"
+      secret_key: "私钥（secret key）"
+      secret_key_help: "同样来自 Cap 控制台，仅保存在服务端。不要与 ADMIN_KEY 混淆。"
+      secret_key_placeholder: "留空表示保留当前私钥"
+      secret_key_set: "当前已保存私钥。"
+      widget_heading: "验证组件"
+      widget_theme: "组件主题"
+      widget_theme_help: "light（浅色）、dark（深色）或 auto（跟随系统偏好）。"
+      widget_script_url: "组件脚本地址"
+      widget_script_url_help: "cap-widget 的加载地址。保持 jsDelivr 默认值，或自托管该文件后指向这里。"
+      protection_heading: "防护范围"
+      protect_signup: "注册时验证"
+      protect_login: "登录时验证"
+      skip_for_staff: "管理人员免验证"
+      min_trust_level: "信任等级达到此级别免验证"
+      min_trust_level_help: "填 0 表示所有访客都要验证。管理人员由上面那项设置控制。"
+      advanced_heading: "高级"
+      max_attempts: "每个 IP 每分钟允许的失败次数"
+      timeout_seconds: "验证请求超时（秒）"
+      failed_last_24h: "最近 24 小时验证失败：%{count} 次"
+      save: "保存更改"
+      saving: "保存中……"
+      saved: "设置已保存。"
+      test: "测试连接"
+      testing: "测试中……"
+      connection_ok: "已成功连接到 Cap 服务端。"
+      not_configured: "请先填写实例地址、站点密钥和私钥。"
+      how_to_heading: "快速开始"
+      how_to_body: |
+        1. 运行 Cap standalone 服务并打开它的控制台。
+        2. 创建一个站点密钥，复制站点密钥与私钥。
+        3. 粘贴实例地址与两个密钥，然后启用插件。
+        4. 可选：自托管 <code>cap-widget</code> 并填写组件脚本地址，
+           这样就不会请求任何第三方 CDN。
