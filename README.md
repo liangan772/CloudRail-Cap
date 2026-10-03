@@ -63,6 +63,36 @@ Then rebuild:
 ./launcher rebuild app
 ```
 
+### Updating an existing install
+
+**`./launcher rebuild app` on its own does not update the plugin.** The
+`after_code` hook above runs `git clone`, and once the directory exists the clone
+fails — nothing is pulled. Rebuilding only recompiles whatever source is already
+there, so a rebuild after a `git push` can silently keep running the old code.
+
+Pull first, then rebuild:
+
+```bash
+# If you cloned into the host's plugins directory:
+cd /var/discourse/plugins/CloudRail-Cap
+git log --oneline -1      # confirm the commit you expect
+git pull
+
+# If the plugin lives inside the container instead:
+./launcher enter app
+cd /var/www/discourse/plugins/CloudRail-Cap
+git log --oneline -1
+git pull
+exit
+
+cd /var/discourse
+./launcher rebuild app
+```
+
+To confirm the new code is live, open `/site.json` and look at
+`cap_verification`. The current payload contains `plugin_enabled` and
+`configured`; if those keys are absent you are still running an older revision.
+
 ## Setup
 
 1. Start the Cap server and open its console (see the
