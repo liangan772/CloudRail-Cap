@@ -6,6 +6,21 @@ en:
       widget_solved: "Verified. Thank you!"
       widget_failed: "Verification failed. Please try again."
       widget_misconfigured: "Human verification is enabled but not fully configured. Contact an administrator."
+      # Labels inside Cap's widget. The widget hard-codes English, so these are
+      # passed through its data-cap-i18n-* attributes. Key names mirror the
+      # Cap attribute names (initial-state -> data-cap-i18n-initial-state, ...).
+      widget_initial_state: "Verify you're human"
+      widget_verifying_label: "Verifying..."
+      widget_solved_label: "You're human"
+      widget_error_label: "Error"
+      widget_troubleshooting_label: "Troubleshooting"
+      widget_wasm_disabled: "Enable WASM for significantly faster solving"
+      widget_verify_aria_label: "Click to verify you're a human"
+      widget_verifying_aria_label: "Verifying, please wait"
+      widget_verified_aria_label: "Verified"
+      widget_required_label: "Please verify you're human"
+      widget_error_aria_label: "An error occurred, please try again"
+      widget_group_aria_label: "Cap verification"
       admin:
         title: "Cap Verification"
         nav_title: "Cap Verification"

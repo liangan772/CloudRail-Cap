@@ -102,6 +102,35 @@ export default class CapWidget extends Component {
     return `${instance}/${siteKey}/`;
   }
 
+  /**
+   * Labels for the strings Cap's widget hard-codes in English.
+   *
+   * The widget resolves every label through
+   * `getAttribute("data-cap-i18n-" + key) || default`, so these attributes are
+   * the only way to translate it. Without them a Chinese forum still shows
+   * "Verify you're human".
+   *
+   * The keys below are exactly the ones the widget asks for; they were read
+   * out of its source rather than the docs, because the docs list only some of
+   * them (group-aria-label is undocumented).
+   */
+  get labels() {
+    return {
+      initialState: i18n("cap_verification.widget_initial_state"),
+      verifyingLabel: i18n("cap_verification.widget_verifying_label"),
+      solvedLabel: i18n("cap_verification.widget_solved_label"),
+      errorLabel: i18n("cap_verification.widget_error_label"),
+      troubleshootingLabel: i18n("cap_verification.widget_troubleshooting_label"),
+      wasmDisabled: i18n("cap_verification.widget_wasm_disabled"),
+      verifyAriaLabel: i18n("cap_verification.widget_verify_aria_label"),
+      verifyingAriaLabel: i18n("cap_verification.widget_verifying_aria_label"),
+      verifiedAriaLabel: i18n("cap_verification.widget_verified_aria_label"),
+      requiredLabel: i18n("cap_verification.widget_required_label"),
+      errorAriaLabel: i18n("cap_verification.widget_error_aria_label"),
+      groupAriaLabel: i18n("cap_verification.widget_group_aria_label"),
+    };
+  }
+
   @action
   async onSolve(event) {
     const token = event?.detail?.token;
@@ -138,9 +167,24 @@ export default class CapWidget extends Component {
 
             Note there is deliberately no `data-cap-theme` attribute - Cap's
             widget does not implement one. Theming is done with CSS custom
-            properties from the wrapper class above. }}
+            properties from the wrapper class above.
+
+            The data-cap-i18n-* attributes override the widget's hard-coded
+            English labels; see the `labels` getter. }}
         <cap-widget
           data-cap-api-endpoint={{this.endpoint}}
+          data-cap-i18n-initial-state={{this.labels.initialState}}
+          data-cap-i18n-verifying-label={{this.labels.verifyingLabel}}
+          data-cap-i18n-solved-label={{this.labels.solvedLabel}}
+          data-cap-i18n-error-label={{this.labels.errorLabel}}
+          data-cap-i18n-troubleshooting-label={{this.labels.troubleshootingLabel}}
+          data-cap-i18n-wasm-disabled={{this.labels.wasmDisabled}}
+          data-cap-i18n-verify-aria-label={{this.labels.verifyAriaLabel}}
+          data-cap-i18n-verifying-aria-label={{this.labels.verifyingAriaLabel}}
+          data-cap-i18n-verified-aria-label={{this.labels.verifiedAriaLabel}}
+          data-cap-i18n-required-label={{this.labels.requiredLabel}}
+          data-cap-i18n-error-aria-label={{this.labels.errorAriaLabel}}
+          data-cap-i18n-group-aria-label={{this.labels.groupAriaLabel}}
           {{on "solve" this.onSolve}}
           {{on "reset" this.onReset}}
         ></cap-widget>

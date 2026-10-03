@@ -6,6 +6,21 @@ zh_CN:
       widget_solved: "验证通过，谢谢！"
       widget_failed: "验证未通过，请重试。"
       widget_misconfigured: "人机验证已启用但未配置完整，请联系管理员。"
+      # Cap 组件内部标签。组件默认是硬编码英文，这些文案通过 data-cap-i18n-*
+      # 属性传入，让中文论坛看到中文提示。键名对应 Cap 的属性名
+      # （initial-state -> data-cap-i18n-initial-state 等）。
+      widget_initial_state: "点击验证您是人类"
+      widget_verifying_label: "正在验证……"
+      widget_solved_label: "验证通过"
+      widget_error_label: "验证出错"
+      widget_troubleshooting_label: "排查问题"
+      widget_wasm_disabled: "启用 WASM 可显著加快验证速度"
+      widget_verify_aria_label: "点击验证您是人类"
+      widget_verifying_aria_label: "正在验证，请稍候"
+      widget_verified_aria_label: "已验证"
+      widget_required_label: "请先完成人机验证"
+      widget_error_aria_label: "发生错误，请重试"
+      widget_group_aria_label: "Cap 人机验证"
       admin:
         title: "Cap 人机验证"
         nav_title: "Cap 人机验证"
