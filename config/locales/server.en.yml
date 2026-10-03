@@ -58,6 +58,7 @@ en:
       test: "Test connection"
       testing: "Testing..."
       connection_ok: "Connected to the Cap server successfully."
+      bad_credentials: "The Cap server rejected these credentials. Check the secret key (not the admin key) and the site key."
       not_configured: "Fill in the instance URL, site key and secret key first."
       how_to_heading: "Quick start"
       how_to_body: |

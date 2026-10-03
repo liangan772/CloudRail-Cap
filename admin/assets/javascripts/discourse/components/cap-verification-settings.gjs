@@ -11,7 +11,7 @@ import { i18n } from "discourse-i18n";
 
 /**
  * The plugin's settings form, rendered as the `verification` tab on
- * /admin/plugins/CloudRail-Cap.
+ * /admin/plugins/cloudrail-cap.
  *
  * This is a component rather than a controller on purpose: the route template
  * hands us the resolved model as @model, and a component's state is only ever
@@ -27,10 +27,18 @@ export default class CapVerificationSettings extends Component {
   /** Local, user-editable copy of the settings. Built lazily on first read. */
   @tracked _fields = null;
 
+  /**
+   * The record returned by a successful save. `this.args` belongs to the
+   * caller (and is frozen in dev builds), so the refreshed payload is kept
+   * here instead of being written back into args - assigning to args throws
+   * in a strict ES module and would make a successful save look like a failure.
+   */
+  @tracked savedModel = null;
+
   themes = ["light", "dark", "auto"];
 
   get model() {
-    return this.args.model ?? {};
+    return this.savedModel ?? this.args.model ?? {};
   }
 
   /**
@@ -110,7 +118,7 @@ export default class CapVerificationSettings extends Component {
         data: { cap_verification: payload },
       });
 
-      this.args.model = updated;
+      this.savedModel = updated;
       this._fields = null;
       this.#showNotice(i18n("cap_verification.admin.saved"), "is-success");
     } catch (error) {

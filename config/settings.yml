@@ -28,12 +28,37 @@ plugins:
     secret: true
     client: false
 
+  # Pinned on purpose. `@latest` is a listed production failure mode in Cap's
+  # own guide ("version unpinned in production, so an upstream release can
+  # change behavior without warning"), and the un-scoped `cap-widget` name is a
+  # legacy alias for `@cap.js/widget`. The widget is a plain ES module with no
+  # dependencies, so pinning costs nothing.
+  #
+  # jsDelivr is blocked in some jurisdictions, including parts of mainland
+  # China. If the forum must be reachable there, self-host this file and point
+  # the setting at it — or enable Cap's own asset server and use
+  # https://<instance>/assets/widget.js.
   cap_verification_widget_script_url:
-    default: "https://cdn.jsdelivr.net/npm/cap-widget@latest"
+    default: "https://cdn.jsdelivr.net/npm/@cap.js/widget@0.1.58"
     client: true
 
+  # Cap's widget has no light/dark/auto switch — it is themed purely through CSS
+  # custom properties (`--cap-background`, `--cap-color`, ...). There is no
+  # `data-cap-theme` attribute; passing one is silently ignored. The plugin
+  # instead sets those variables itself in cap-verification.scss, driven by
+  # this setting.
+  #
+  # The widget's own fallback colours are hard-coded light (#fdfdfd background,
+  # #212121 text) and it does not implement prefers-color-scheme, so leaving
+  # the variables unset puts a bright white box in a dark forum. Every mode
+  # therefore sets them:
+  #
+  #   auto  -> uses Discourse's own variables, so the widget follows whatever
+  #            colour scheme the reader has selected
+  #   light -> pinned light, even on a dark forum
+  #   dark  -> pinned dark, even on a light forum
   cap_verification_widget_theme:
-    default: "light"
+    default: "auto"
     type: enum
     choices:
       - "light"

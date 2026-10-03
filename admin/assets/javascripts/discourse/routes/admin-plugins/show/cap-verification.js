@@ -3,7 +3,7 @@ import DiscourseRoute from "discourse/routes/discourse";
 
 /**
  * Route for the plugin's page at
- * /admin/plugins/CloudRail-Cap/verification.
+ * /admin/plugins/cloudrail-cap/verification.
  *
  * Lives under `admin/assets/javascripts/...` rather than
  * `assets/javascripts/...`, which is where the modern plugin admin routes go.

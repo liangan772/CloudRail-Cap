@@ -19,7 +19,7 @@
 //
 // `path: "/plugins"` matches the plugin show URL, so this route resolves to
 //   /admin/plugins/<plugin_id>/verification
-// with plugin_id being "CloudRail-Cap" (see add_admin_route in plugin.rb).
+// with plugin_id being "cloudrail-cap" (see add_admin_route in plugin.rb).
 //
 // The route name `cap-verification` becomes `adminPlugins.show.cap-verification`
 // and must match:

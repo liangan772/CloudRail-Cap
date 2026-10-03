@@ -214,4 +214,114 @@ RSpec.describe DiscourseCap::Verify do
       ).to eq(true)
     end
   end
+
+  describe ".valid_token?" do
+    # Tokens are single-use, so a non-2xx must never be read as success. These
+    # are the cases that decide whether a forged submission can get through.
+    it "is true only on a 2xx response with success: true" do
+      stub_siteverify(success: true)
+      expect(described_class.valid_token?("a:b:c")).to eq(true)
+    end
+
+    it "is false when the server rejects the credentials" do
+      stub_request(:post, "https://cap.example.com/sk_test/siteverify").to_return(
+        status: 403,
+        body: { success: false, error: "Invalid site key or secret" }.to_json,
+        headers: {
+          "Content-Type" => "application/json",
+        },
+      )
+
+      expect(described_class.valid_token?("a:b:c")).to eq(false)
+    end
+
+    it "is false when the token is unknown or already redeemed" do
+      stub_request(:post, "https://cap.example.com/sk_test/siteverify").to_return(
+        status: 404,
+        body: { success: false, error: "Token not found" }.to_json,
+        headers: {
+          "Content-Type" => "application/json",
+        },
+      )
+
+      expect(described_class.valid_token?("a:b:c")).to eq(false)
+    end
+
+    it "fails closed when the Cap server cannot be reached" do
+      stub_request(:post, "https://cap.example.com/sk_test/siteverify").to_timeout
+      expect(described_class.valid_token?("a:b:c")).to eq(false)
+    end
+
+    it "fails closed when the response body is not JSON" do
+      stub_request(:post, "https://cap.example.com/sk_test/siteverify").to_return(
+        status: 200,
+        body: "<html>502 Bad Gateway</html>",
+        headers: {
+          "Content-Type" => "text/html",
+        },
+      )
+
+      expect(described_class.valid_token?("a:b:c")).to eq(false)
+    end
+  end
+
+  describe ".test_connection" do
+    # The probe token must contain exactly two colons. Cap rejects anything
+    # else with HTTP 400 "Missing required parameters" *before* it looks at the
+    # secret, so a malformed probe makes a correctly configured site report a
+    # failure. This is a regression guard for exactly that bug.
+    it "sends a token shaped the way Cap requires" do
+      expect(described_class.probe_token.split(":").length).to eq(3)
+    end
+
+    def stub_probe(status:, body:)
+      stub_request(:post, "https://cap.example.com/sk_test/siteverify").to_return(
+        status: status,
+        body: body.to_json,
+        headers: {
+          "Content-Type" => "application/json",
+        },
+      )
+    end
+
+    it "reports success when Cap accepts the credentials but not the token" do
+      # This is what a healthy server returns for a made-up token: the secret
+      # verified, then the token lookup missed. It is the success case.
+      stub_probe(status: 404, body: { success: false, error: "Token not found" })
+
+      expect(described_class.test_connection).to include(success: true)
+    end
+
+    it "reports a credentials problem when the secret is rejected" do
+      stub_probe(status: 403, body: { success: false, error: "Invalid site key or secret" })
+
+      result = described_class.test_connection
+
+      expect(result[:success]).to eq(false)
+      # The message comes from the locale file, so assert it is present rather
+      # than matching prose that differs between en and zh_CN.
+      expect(result[:error]).to be_present
+      expect(result[:error]).to eq(I18n.t("cap_verification.admin.bad_credentials"))
+    end
+
+    it "fails closed when the Cap server is unreachable" do
+      stub_request(:post, "https://cap.example.com/sk_test/siteverify").to_raise(
+        Errno::ECONNREFUSED,
+      )
+
+      expect(described_class.test_connection[:success]).to eq(false)
+    end
+
+    it "fails closed when the Cap server times out" do
+      stub_request(:post, "https://cap.example.com/sk_test/siteverify").to_timeout
+
+      expect(described_class.test_connection[:success]).to eq(false)
+    end
+
+    it "refuses to probe when the credentials are incomplete" do
+      SiteSetting.cap_verification_secret_key = ""
+
+      expect(described_class.test_connection[:success]).to eq(false)
+    end
+  end
 end

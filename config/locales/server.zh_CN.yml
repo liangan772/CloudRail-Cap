@@ -58,6 +58,7 @@ zh_CN:
       test: "测试连接"
       testing: "测试中……"
       connection_ok: "已成功连接到 Cap 服务端。"
+      bad_credentials: "Cap 服务端拒绝了这组凭据。请检查私钥（不是 admin key）和站点密钥。"
       not_configured: "请先填写实例地址、站点密钥和私钥。"
       how_to_heading: "快速开始"
       how_to_body: |

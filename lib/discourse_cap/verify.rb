@@ -85,23 +85,53 @@ module DiscourseCap
         true
       end
 
-      # Probes the instance with a deliberately invalid token. A well-formed
-      # `{ "success": false }` response proves the server is reachable and the
-      # secret was accepted, so `success: false` is the healthy outcome here.
+      # Probes the instance with a well-formed but unredeemable token.
+      #
+      # The token shape matters. Cap's handler starts with:
+      #
+      #   # standalone/src/siteverify.js
+      #   if (response.split(":").length !== 3) {
+      #     return { success: false, error: "Missing required parameters" };
+      #   }
+      #
+      # so anything without exactly two colons is rejected with HTTP 400
+      # *before* the secret is ever checked. The old probe sent a bare string
+      # and therefore always saw 400, making a correctly configured site look
+      # broken. Sending "<site_key>:probe:probe" gets past that guard, so the
+      # response actually reflects whether the credentials are good:
+      #
+      #   404 "Token not found"        -> secret accepted, server healthy
+      #   403 "Invalid site key..."    -> wrong secret key (or wrong site key)
+      #   404 "Invalid site key..."    -> site key does not exist
+      #
+      # "Token not found" is the healthy outcome: the token is a fake, so of
+      # course it is not in Redis. It proves the whole path works.
       def test_connection
         unless Config.configured?
           return({ success: false, error: I18n.t("cap_verification.admin.not_configured") })
         end
 
-        parsed, status = post_to_cap("__connection_probe__")
+        parsed, status = post_to_cap(probe_token)
+        message = parsed.is_a?(Hash) ? parsed["error"].to_s : ""
 
-        if status.is_a?(Net::HTTPSuccess) && parsed.is_a?(Hash) && parsed.key?("success")
+        if status.is_a?(Net::HTTPSuccess)
           { success: true, message: I18n.t("cap_verification.admin.connection_ok") }
+        elsif message.match?(/token not found/i)
+          # Exactly what a healthy server returns for a made-up token.
+          { success: true, message: I18n.t("cap_verification.admin.connection_ok") }
+        elsif message.match?(/invalid site key or secret/i)
+          { success: false, error: I18n.t("cap_verification.admin.bad_credentials") }
         else
-          { success: false, error: "HTTP #{status.code}" }
+          { success: false, error: "HTTP #{status.code}: #{message.presence || 'unexpected response'}" }
         end
       rescue StandardError => e
         { success: false, error: "#{e.class}: #{e.message}" }
+      end
+
+      # A token of the form Cap requires: exactly two colons. It can never be
+      # redeemed, which is the point.
+      def probe_token
+        "#{SiteSetting.cap_verification_site_key}:probe:probe"
       end
 
       def valid_token?(token)

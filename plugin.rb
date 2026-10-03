@@ -1,12 +1,32 @@
 # frozen_string_literal: true
 
-# name: CloudRail-Cap
+# name: cloudrail-cap
 # about: Self-hosted human verification for Discourse using Cap (a proof-of-work CAPTCHA). Adds a Cap checkbox to signup and login, verifies tokens server-side, and ships an admin settings screen.
 # version: 1.0.0
 # authors: WorkBuddy AI
 # url: https://github.com/liangan772/CloudRail-Cap
 # required_version: 3.3.0
 # transpile_js: true
+#
+# NAME AND DIRECTORY MUST BOTH BE LOWERCASE.
+#
+# A plugin's stylesheet target is its DIRECTORY name, and core serves it through
+# a route constrained to lowercase:
+#
+#   # config/routes.rb
+#   get "stylesheets/:name" => "stylesheets#show",
+#       constraints: { name: /[-a-z0-9_]+/, format: "css" }
+#
+# The browser requests `/stylesheets/<directory>_<digest>.css`. With a
+# capitalized directory that request never matches the route, falls through to
+# the 404 page, and comes back as `text/html` — which the browser refuses:
+#
+#   Refused to apply style ... MIME type ('text/html') is not a supported
+#   stylesheet MIME type, and strict MIME checking is enabled.
+#
+# The JS bundle is unaffected (different route), so the symptom is a plugin
+# whose JavaScript loads while its CSS silently 404s. Every plugin in the
+# Discourse repo uses a lowercase directory for this reason.
 
 enabled_site_setting :cap_verification_enabled
 
@@ -15,9 +35,9 @@ register_svg_icon "shield-halved"
 
 module ::DiscourseCap
   # Must equal the plugin directory name, which is what the git clone in
-  # containers/app.yml produces. Discourse warns and misregisters the plugin
-  # in /admin/plugins when this and the directory disagree.
-  PLUGIN_NAME = "CloudRail-Cap"
+  # containers/app.yml produces. Keep both lowercase — see the note at the top
+  # of this file: an uppercase directory breaks the stylesheet route.
+  PLUGIN_NAME = "cloudrail-cap"
 end
 
 # `lib/` is not autoloaded, so these are required explicitly. Files under
@@ -117,10 +137,10 @@ after_initialize do
   #    and `plugins_by_name` is keyed by plugin name, not by an arbitrary slug.
   #    Anything else 404s on /admin/plugins/<location>.json.
   #
-  # The URL is therefore /admin/plugins/CloudRail-Cap, and the plugin's own
-  # page lives at /admin/plugins/CloudRail-Cap/verification (see the route map
+  # The URL is therefore /admin/plugins/cloudrail-cap, and the plugin's own
+  # page lives at /admin/plugins/cloudrail-cap/verification (see the route map
   # in assets/javascripts/discourse/cap-verification-route-map.js).
-  add_admin_route("cap_verification.admin.title", "CloudRail-Cap", {
+  add_admin_route("cap_verification.admin.title", PLUGIN_NAME, {
     use_new_show_route: true,
   })
 
