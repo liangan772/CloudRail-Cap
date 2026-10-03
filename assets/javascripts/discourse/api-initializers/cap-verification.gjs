@@ -6,12 +6,15 @@ import loadScript from "discourse/lib/load-script";
  * enabled Cap. Loading the script lazily keeps it out of the critical path for
  * anonymous crawlers and for sites that have the plugin installed but disabled.
  *
+ * The config lives on the `site` service, not `siteSettings` - the server
+ * publishes it with `add_to_serializer(:site, :cap_verification)`.
+ *
  * Cap docs: https://trycap.dev/zh/guide
  */
 export default apiInitializer((api) => {
   const container = api.container;
-  const siteSettings = container.lookup("service:site-settings");
-  const config = siteSettings.cap_verification;
+  const site = container.lookup("service:site");
+  const config = site.cap_verification;
 
   if (!config?.enabled || !config?.script_url) {
     return;

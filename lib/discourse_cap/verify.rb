@@ -20,16 +20,26 @@ module DiscourseCap
       end
     end
 
-    class << self
-      # Raises DiscourseCap::Verify::Failure when verification should block the
-      # request. Returns true when the submission may proceed.
-      #
-      # `actor` is the current_user for the request (may be nil). Every value
-      # needed is passed in explicitly so this stays safe under concurrency.
-      def enforce!(token:, remote_ip:, context:, actor: nil)
-        return true unless SiteSetting.cap_verification_enabled
-        return true if bypass_for?(actor)
+    # Session key holding the pending verification, and how long a solved
+    # challenge stays usable before the visitor has to solve it again.
+    #
+    # Declared at module level (not inside `class << self`) so they resolve as
+    # DiscourseCap::Verify::SESSION_KEY.
+    SESSION_KEY = :cap_verification_verified
+    VERIFICATION_TTL = 15.minutes
 
+    class << self
+      # Redeems a token and, on success, records the verification in the
+      # visitor's session.
+      #
+      # This runs when the challenge is *solved*, not when the form is
+      # submitted, because the token cannot travel with the form: Discourse
+      # builds the signup and login payloads explicitly in JS
+      # (frontend/discourse/app/models/user.js, controllers/login.js), so a
+      # hidden input is never sent, and there is no plugin hook for the login
+      # flow. Discourse's own captcha plugin also verifies out-of-band and keeps
+      # the result server-side.
+      def redeem!(token:, session:, remote_ip:, context:)
         token = token.to_s.strip
         raise Failure.new(:missing_token) if token.blank?
         raise Failure.new(:token_too_long) if token.length > 4096
@@ -38,6 +48,37 @@ module DiscourseCap
         unless valid_token?(token)
           throttle!(context, remote_ip)
           log_failure(remote_ip, context, "invalid")
+          raise Failure.new(:invalid_token)
+        end
+
+        mark_verified!(session, context)
+        true
+      end
+
+      def mark_verified!(session, context)
+        session[SESSION_KEY] = {
+          "at" => Time.zone.now.to_i,
+          "context" => context.to_s,
+        }
+      end
+
+      # Raises DiscourseCap::Verify::Failure when the visitor has not solved a
+      # challenge. Returns true when the submission may proceed.
+      #
+      # The flag is consumed either way, so a single solved challenge cannot be
+      # replayed across several submissions.
+      def enforce_session!(session:, remote_ip:, context:, actor: nil)
+        return true unless SiteSetting.cap_verification_enabled
+        return true if bypass_for?(actor)
+
+        record = session.delete(SESSION_KEY)
+
+        raise Failure.new(:missing_token) if record.blank?
+
+        verified_at = record["at"].to_i
+        if verified_at.zero? ||
+             (Time.zone.now.to_i - verified_at) > VERIFICATION_TTL.to_i
+          log_failure(remote_ip, context, "expired")
           raise Failure.new(:invalid_token)
         end
 

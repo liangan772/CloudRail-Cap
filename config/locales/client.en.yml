@@ -2,7 +2,9 @@ en:
   js:
     cap_verification:
       widget_pending: "Please complete the verification above."
+      widget_verifying: "Verifying..."
       widget_solved: "Verified. Thank you!"
+      widget_failed: "Verification failed. Please try again."
       widget_misconfigured: "Human verification is enabled but not fully configured. Contact an administrator."
       admin:
         title: "Cap Verification"

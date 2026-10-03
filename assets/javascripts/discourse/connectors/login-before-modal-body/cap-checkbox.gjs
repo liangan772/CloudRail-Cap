@@ -1,6 +1,10 @@
 <template>
   {{#if this.shouldShow}}
-    <CapWidget @config={{this.config}} @showStatus={{false}} />
+    <CapWidget
+      @config={{this.config}}
+      @context="login"
+      @showStatus={{false}}
+    />
   {{/if}}
 </template>
 
@@ -12,17 +16,18 @@
   /**
    * Injects the Cap checkbox above the login form.
    *
-   * Connector path:
-   *   assets/javascripts/discourse/connectors/login-before-modal-body/cap-checkbox.gjs
+   * Outlet: `login-before-modal-body`, declared by core in
+   * frontend/discourse/app/templates/login.gjs. This outlet is valid - it was
+   * the config lookup that was broken.
    *
-   * The `login-before-modal-body` outlet is defined by core in the login
-   * template, so no core patching is required.
+   * The config comes from the `site` service, not `siteSettings`: the server
+   * publishes it with `add_to_serializer(:site, :cap_verification)`.
    */
   export default class CapLoginConnector extends Component {
-    @service siteSettings;
+    @service site;
 
     get config() {
-      return this.siteSettings.cap_verification;
+      return this.site.cap_verification;
     }
 
     get shouldShow() {

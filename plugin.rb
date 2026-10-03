@@ -32,24 +32,34 @@ after_initialize do
   # Server-side enforcement
   # ---------------------------------------------------------------------
   #
-  # `UsersController#create` handles signup, `SessionController#create`
-  # handles local login. Both accept form params, so the token arrives as
-  # `params[:cap_token]` (injected by the <cap-widget> hidden field, or by
-  # our connector component in the JS flow).
+  # The token cannot ride along with the signup/login request. Discourse builds
+  # both payloads explicitly in JS:
+  #
+  #   // frontend/discourse/app/models/user.js
+  #   const data = { name, email, password, username, ... };
+  #   ajax(userPath(), { data, type: "POST" });
+  #
+  # so a hidden form field is never submitted. There is also no plugin hook for
+  # the login flow: BEHAVIOR_TRANSFORMERS has "create-account" but nothing for
+  # login, and plugin-api exposes no login/session API at all.
+  #
+  # So verification happens when the visitor SOLVES the challenge. The widget
+  # POSTs the token to /cap-verification/verify, which redeems it against Cap
+  # and records the result in the Rails session. Signup and login then just
+  # check that flag. Discourse's own captcha plugin verifies out-of-band and
+  # keeps the result server-side in the same way.
   #
   add_to_class(:users_controller, :create) do
     if SiteSetting.cap_verification_enabled && SiteSetting.cap_verification_protect_signup
       begin
-        DiscourseCap::Verify.enforce!(
-          token: params[:cap_token],
+        DiscourseCap::Verify.enforce_session!(
+          session: session,
           remote_ip: request.remote_ip,
           context: "signup",
           actor: current_user,
         )
       rescue DiscourseCap::Verify::Failure => e
         return render_json_error(I18n.t("cap_verification.errors.#{e.reason}"), status: 403)
-      rescue RateLimiter::LimitExceeded
-        return render_json_error(I18n.t("cap_verification.errors.too_many_attempts"), status: 429)
       end
     end
     super()
@@ -58,25 +68,32 @@ after_initialize do
   add_to_class(:session_controller, :create) do
     if SiteSetting.cap_verification_enabled && SiteSetting.cap_verification_protect_login
       begin
-        DiscourseCap::Verify.enforce!(
-          token: params[:cap_token],
+        DiscourseCap::Verify.enforce_session!(
+          session: session,
           remote_ip: request.remote_ip,
           context: "login",
           actor: current_user,
         )
       rescue DiscourseCap::Verify::Failure => e
         return render_json_error(I18n.t("cap_verification.errors.#{e.reason}"), status: 403)
-      rescue RateLimiter::LimitExceeded
-        return render_json_error(I18n.t("cap_verification.errors.too_many_attempts"), status: 429)
       end
     end
     super()
   end
 
   # Expose the plugin's public configuration to the client so the widget
-  # component knows which instance + site key to talk to.
+  # component knows which instance + site key to talk to. This lands on the
+  # `site` model (read it as `site.cap_verification`), NOT on `siteSettings` -
+  # `siteSettings` only carries values from config/settings.yml marked
+  # `client: true`.
   add_to_serializer(:site, :cap_verification) do
     DiscourseCap::Config.client_payload
+  end
+
+  # Reachable while signed out (signup and login are anonymous flows), so this
+  # is deliberately not behind StaffConstraint.
+  Discourse::Application.routes.append do
+    post "/cap-verification/verify" => "discourse_cap/verification#verify"
   end
 
   # ---------------------------------------------------------------------

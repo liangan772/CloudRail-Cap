@@ -99,34 +99,55 @@ Then rebuild:
 
 ## How it works
 
+The token is redeemed **when the challenge is solved**, not when the form is
+submitted, because it cannot travel with the form. Discourse builds the signup
+and login payloads explicitly in JS:
+
+```js
+// frontend/discourse/app/models/user.js
+const data = { name, email, password, username, ... };
+ajax(userPath(), { data, type: "POST" });
+```
+
+so a hidden form field is never sent. And there is no plugin hook for the login
+flow at all — `BEHAVIOR_TRANSFORMERS` contains `create-account` but nothing for
+login, and `plugin-api` exposes no login/session API.
+
 ```
 browser                    Discourse                    Cap server
-   |  tick checkbox            |                             |
-   |-------------------------->|                             |
-   |  hidden cap_token         |                             |
-   |   POST /signup            |                             |
+   |  solve challenge          |                             |
+   |  POST /cap-verification/verify                          |
    |-------------------------->|  POST /{site_key}/siteverify|
    |                           |---------------------------->|
    |                           |        { success: true }    |
    |                           |<----------------------------|
-   |    account created        |                             |
+   |                           |  session[:cap_verification_verified]
+   |    { success: true }      |                             |
+   |<--------------------------|                             |
+   |  POST /signup             |                             |
+   |-------------------------->|  reads the session flag     |
+   |    account created        |  (single-use, 15 min TTL)   |
    |<--------------------------|                             |
 ```
 
 `UsersController#create` and `SessionController#create` are extended in
-`plugin.rb`. Before the core action runs, `DiscourseCap::Verify.enforce!` redeems
-the token. Cap tokens are single-use, so a captured token cannot be replayed.
+`plugin.rb`. They call `DiscourseCap::Verify.enforce_session!`, which consumes the
+session flag set by `/cap-verification/verify`. Cap tokens are single-use, and the
+flag is cleared on use, so neither can be replayed. Discourse's own captcha plugin
+verifies out-of-band and keeps the result server-side in the same way.
 
 ### Key files
 
 | Path | Role |
 | --- | --- |
 | `plugin.rb` | Entry point: settings, controller extensions, admin route. |
-| `lib/discourse_cap/verify.rb` | Token redemption, throttling, bypass rules. |
+| `lib/discourse_cap/verify.rb` | Token redemption, session flag, throttling, bypass rules. |
 | `lib/discourse_cap/config.rb` | Single source of truth for "is Cap usable?" plus the client payload. |
+| `app/controllers/discourse_cap/verification_controller.rb` | Signed-out endpoint that redeems the token. |
 | `app/controllers/discourse_cap/admin_controller.rb` | Settings API (`/cap-verification/*`) and connection test. |
-| `assets/javascripts/.../components/cap-widget.gjs` | The checkbox, mirrors the token into `cap_token`. |
-| `assets/javascripts/.../connectors/*/cap-checkbox.gjs` | Injects the widget into the signup and login outlets. |
+| `assets/javascripts/.../components/cap-widget.gjs` | The checkbox; redeems the token on solve. |
+| `assets/javascripts/.../connectors/create-account-after-user-fields/` | Signup outlet. |
+| `assets/javascripts/.../connectors/login-before-modal-body/` | Login outlet. |
 | `assets/javascripts/.../cap-verification-route-map.js` | Mounts the plugin's admin route on `admin.adminPlugins.show`. |
 | `assets/javascripts/.../initializers/cap-verification-admin-plugin-configuration-nav.js` | Registers the plugin's tab on `/admin/plugins/CloudRail-Cap`. |
 | `admin/assets/javascripts/.../routes/admin-plugins/show/cap-verification.js` | Loads the settings payload. |
@@ -137,6 +158,26 @@ the token. Cap tokens are single-use, so a captured token cannot be replayed.
 
 Note the split: frontend code that runs in the main app lives under
 `assets/javascripts/`, while admin-page code lives under `admin/assets/javascripts/`.
+
+### Frontend troubleshooting
+
+**The checkbox does not appear.** Two causes, both easy to hit:
+
+1. **Wrong config source.** The server publishes the widget config with
+   `add_to_serializer(:site, :cap_verification)`, which lands on the **`site`**
+   model — read it as `site.cap_verification`. `siteSettings` only carries values
+   from `config/settings.yml` marked `client: true`, so reading it returns
+   `undefined` and the connector renders nothing.
+2. **Outlet that does not exist.** The connector's directory name must be a real
+   outlet. Valid signup outlets are `create-account-before-modal-body`,
+   `create-account-after-user-fields`, `create-account-after-modal-footer`;
+   valid login outlets are `login-before-modal-body`, `login-header-bottom`.
+   Check `frontend/discourse/app/templates/signup.gjs` and `login.gjs` for the
+   current list — an unknown outlet is silently ignored.
+
+**The checkbox appears but every submission is rejected.** The token never
+reached the server. Do not mirror it into a hidden input; redeem it from the
+widget as described above.
 
 ## Troubleshooting
 

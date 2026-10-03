@@ -2,7 +2,9 @@ zh_CN:
   js:
     cap_verification:
       widget_pending: "请先完成上方的人机验证。"
+      widget_verifying: "正在验证……"
       widget_solved: "验证通过，谢谢！"
+      widget_failed: "验证未通过，请重试。"
       widget_misconfigured: "人机验证已启用但未配置完整，请联系管理员。"
       admin:
         title: "Cap 人机验证"
