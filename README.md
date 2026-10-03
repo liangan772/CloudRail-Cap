@@ -68,10 +68,14 @@ Then rebuild:
 1. Start the Cap server and open its console (see the
    [quick start](https://trycap.dev/zh/guide#_1-%E8%BF%90%E8%A1%8C%E6%9C%8D%E5%8A%A1%E7%AB%AF)).
 2. Create a **site key** and copy both the *site key* and the *secret key*.
-3. In Discourse go to **Admin → Plugins → Cap Verification**.
+3. In Discourse go to **Admin → Plugins → Cap Verification**
+   (`/admin/plugins/CloudRail-Cap`) and open the **Setup** tab.
 4. Fill in the instance URL, site key and secret key. The instance URL must be
    publicly reachable by visitors — `localhost` will not work.
 5. Click **Test connection**, then enable the plugin and save.
+
+> The plugin's **Settings** tab is Discourse's own generated page for the site
+> settings; the **Setup** tab is this plugin's form. Both edit the same values.
 
 > The **secret key** is not the console's `ADMIN_KEY`. Mixing these up is the
 > most common configuration mistake.
@@ -120,29 +124,37 @@ the token. Cap tokens are single-use, so a captured token cannot be replayed.
 | `plugin.rb` | Entry point: settings, controller extensions, admin route. |
 | `lib/discourse_cap/verify.rb` | Token redemption, throttling, bypass rules. |
 | `lib/discourse_cap/config.rb` | Single source of truth for "is Cap usable?" plus the client payload. |
-| `app/controllers/discourse_cap/admin_controller.rb` | Admin settings API and connection test. |
+| `app/controllers/discourse_cap/admin_controller.rb` | Settings API (`/cap-verification/*`) and connection test. |
 | `assets/javascripts/.../components/cap-widget.gjs` | The checkbox, mirrors the token into `cap_token`. |
 | `assets/javascripts/.../connectors/*/cap-checkbox.gjs` | Injects the widget into the signup and login outlets. |
-| `assets/javascripts/.../cap-verification-route-map.js` | Registers `adminPlugins.capverification`. **Required** — without it the plugin list shows a "broken route" error. |
-| `assets/javascripts/.../routes/admin-plugins-capverification.js` | Loads the settings payload and spreads it onto the controller. |
-| `assets/javascripts/.../controllers/admin-plugins-capverification.js` | Admin screen state and actions. |
-| `assets/javascripts/.../templates/admin/plugins-capverification.gjs` | Admin settings screen. |
+| `assets/javascripts/.../cap-verification-route-map.js` | Mounts the plugin's admin route on `admin.adminPlugins.show`. |
+| `assets/javascripts/.../initializers/cap-verification-admin-plugin-configuration-nav.js` | Registers the plugin's tab on `/admin/plugins/CloudRail-Cap`. |
+| `admin/assets/javascripts/.../routes/admin-plugins/show/cap-verification.js` | Loads the settings payload. |
+| `admin/assets/javascripts/.../templates/admin-plugins/show/cap-verification.gjs` | Route template; renders the component below. |
+| `admin/assets/javascripts/.../components/cap-verification-settings.gjs` | The settings form: fields, save, test connection. |
 | `config/locales/client.*.yml` | Frontend strings. **Must be nested under `js:`** or lookups fail. |
 | `config/locales/server.*.yml` | Site-setting labels and server-side error messages. |
+
+Note the split: frontend code that runs in the main app lives under
+`assets/javascripts/`, while admin-page code lives under `admin/assets/javascripts/`.
 
 ## Troubleshooting
 
 ### `Unable to configure link to '...'. Ensure ad-blockers are disabled and try reloading the page.`
 
-This is core's `admin.plugins.broken_route`. Despite the wording it is almost
-never an ad blocker — it means Discourse could not resolve the plugin's admin
-route in the frontend router:
+This is core's `admin.plugins.broken_route`. Despite the wording it is never an
+ad blocker — it means Discourse could not resolve the plugin's admin route in
+the frontend router:
 
 ```js
 // frontend/discourse/app/lib/admin-utilities.js
 export function adminRouteValid(router, adminRoute) {
   try {
-    router.urlFor(adminRoute.full_location); // "adminPlugins.capverification"
+    if (adminRoute.use_new_show_route) {
+      router.urlFor(adminRoute.full_location, adminRoute.location);
+    } else {
+      router.urlFor(adminRoute.full_location);
+    }
     return true;
   } catch {
     return false;
@@ -150,16 +162,34 @@ export function adminRouteValid(router, adminRoute) {
 }
 ```
 
-`add_admin_route` only tells the **server** to advertise a link; the route itself
-has to be declared in a `*-route-map.js` file. Check that
-`assets/javascripts/discourse/cap-verification-route-map.js` exists, declares
-`resource: "admin.adminPlugins"`, and that its `this.route("...")` name matches
-the second argument of `add_admin_route` in `plugin.rb` (`capverification`).
+`full_location` is `adminPlugins.show` when `add_admin_route` is called with
+`use_new_show_route: true`, and `adminPlugins.<location>` when it is `false`.
+**Use `true`.** `adminPlugins.show` is a core route, so the link always
+resolves. The `false` form requires the plugin to mount `adminPlugins.<location>`
+itself, and the legacy mount point (`resource: "admin.adminPlugins"`) is no
+longer supported — mounting there fails silently and the route never exists.
+No plugin in the Discourse repo still uses `false`.
+
+Two things to check:
+
+1. `add_admin_route` uses `use_new_show_route: true`.
+2. The route map mounts on `resource: "admin.adminPlugins.show"`, and its
+   `this.route(...)` name matches the nav entry's route
+   (`adminPlugins.show.cap-verification`).
+
+Also note the **location must be the plugin's name** (`CloudRail-Cap`), not an
+arbitrary slug. The page is loaded with:
+
+```ruby
+# app/controllers/admin/plugins_controller.rb
+plugin = Discourse.plugins_by_name[params[:plugin_id]]
+```
+
+and `plugins_by_name` is keyed by plugin name, so anything else 404s on
+`/admin/plugins/<location>.json`.
 
 If the `'...'` part shows a raw key such as `[zh_CN.cap_verification.admin.title]`
-rather than a readable name, the label is also untranslated. That happens when
-the locale file is missing the `js:` wrapper, or when the active locale has no
-translation — see below.
+rather than a readable name, the label is also untranslated — see below.
 
 ### Labels show as `[zh_CN.something]` instead of text
 

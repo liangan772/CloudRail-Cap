@@ -7,6 +7,8 @@ zh_CN:
       admin:
         title: "Cap 人机验证"
         nav_title: "Cap 人机验证"
+        tab_label: "配置向导"
+        tab_description: "连接你的 Cap 服务端，并选择需要保护的范围。"
         description: "使用 Cap（自托管的 PoW 验证码）保护注册与登录。不依赖 Google，不做追踪，数据全部留在你自己的服务器上。"
         status_running: "已生效 —— 访客正在接受验证。"
         status_incomplete: "未完成 —— 已启用但缺少凭据，验证不会显示。"

@@ -1,34 +1,178 @@
-import { fn, eq } from "@ember/helper";
+import Component from "@glimmer/component";
+import { eq, fn } from "@ember/helper";
 import { on } from "@ember/modifier";
-import RouteTemplate from "ember-route-template";
-import DButton from "discourse/components/d-button";
+import { action } from "@ember/object";
+import { tracked } from "@glimmer/tracking";
+import { ajax } from "discourse/lib/ajax";
+import { popupAjaxError } from "discourse/lib/ajax-error";
+import DButton from "discourse/ui-kit/d-button";
+import DPageSubheader from "discourse/ui-kit/d-page-subheader";
 import { i18n } from "discourse-i18n";
 
-export default RouteTemplate(
+/**
+ * The plugin's settings form, rendered as the `verification` tab on
+ * /admin/plugins/CloudRail-Cap.
+ *
+ * This is a component rather than a controller on purpose: the route template
+ * hands us the resolved model as @model, and a component's state is only ever
+ * read after it exists. (The earlier blank-page bug was a controller reading
+ * `this.model` in its constructor, before the model was assigned.)
+ */
+export default class CapVerificationSettings extends Component {
+  @tracked saving = false;
+  @tracked testing = false;
+  @tracked notice = null;
+  @tracked noticeClass = "is-info";
+
+  /** Local, user-editable copy of the settings. Built lazily on first read. */
+  @tracked _fields = null;
+
+  themes = ["light", "dark", "auto"];
+
+  get model() {
+    return this.args.model ?? {};
+  }
+
+  /**
+   * Editable form state, seeded from the server payload. Kept separate from
+   * the payload so typing does not mutate the loaded record.
+   */
+  get fields() {
+    if (!this._fields) {
+      this._fields = this.#buildFields();
+    }
+    return this._fields;
+  }
+
+  get statusLabel() {
+    const prefix = "cap_verification.admin.";
+    if (!this.model.enabled) {
+      return i18n(`${prefix}status_disabled`);
+    }
+    if (!this.model.running) {
+      return i18n(`${prefix}status_incomplete`);
+    }
+    return i18n(`${prefix}status_running`);
+  }
+
+  get statusClass() {
+    if (!this.model.enabled) {
+      return "is-disabled";
+    }
+    return this.model.running ? "is-running" : "is-incomplete";
+  }
+
+  /** The secret is never echoed back by the server, so it always starts blank. */
+  #buildFields() {
+    const m = this.model;
+    return {
+      instance_url: m.instance_url || "",
+      site_key: m.site_key || "",
+      secret_key: "",
+      widget_theme: m.widget_theme || "light",
+      widget_script_url: m.widget_script_url || "",
+      protect_signup: Boolean(m.protect_signup),
+      protect_login: Boolean(m.protect_login),
+      skip_for_staff: Boolean(m.skip_for_staff),
+      min_trust_level: m.min_trust_level ?? 0,
+      max_attempts: m.max_attempts ?? 10,
+      timeout_seconds: m.timeout_seconds ?? 5,
+    };
+  }
+
+  @action
+  setField(name, event) {
+    this._fields = { ...this.fields, [name]: event.target.value };
+  }
+
+  @action
+  toggleField(name, event) {
+    this._fields = { ...this.fields, [name]: event.target.checked };
+  }
+
+  @action
+  async save(event) {
+    event?.preventDefault?.();
+    this.saving = true;
+    this.notice = null;
+
+    try {
+      const payload = { ...this.fields };
+
+      // Never overwrite the stored secret with an empty string: an untouched
+      // password field means "keep what is already saved".
+      if (!payload.secret_key) {
+        delete payload.secret_key;
+      }
+
+      const updated = await ajax("/cap-verification/settings", {
+        type: "PUT",
+        data: { cap_verification: payload },
+      });
+
+      this.args.model = updated;
+      this._fields = null;
+      this.#showNotice(i18n("cap_verification.admin.saved"), "is-success");
+    } catch (error) {
+      popupAjaxError(error);
+    } finally {
+      this.saving = false;
+    }
+  }
+
+  @action
+  async testConnection() {
+    this.testing = true;
+    this.notice = null;
+
+    try {
+      const result = await ajax("/cap-verification/test", { type: "POST" });
+
+      if (result.success) {
+        this.#showNotice(
+          result.message || i18n("cap_verification.admin.connection_ok"),
+          "is-success"
+        );
+      } else {
+        this.#showNotice(
+          result.error || i18n("cap_verification.admin.connection_failed"),
+          "is-error"
+        );
+      }
+    } catch (error) {
+      popupAjaxError(error);
+    } finally {
+      this.testing = false;
+    }
+  }
+
+  #showNotice(message, cssClass) {
+    this.notice = message;
+    this.noticeClass = cssClass;
+  }
+
   <template>
     <div class="cap-verification-admin">
-      <div class="admin-page-header">
-        <h1>{{i18n "cap_verification.admin.title"}}</h1>
-        <p class="admin-page-header__description">
-          {{i18n "cap_verification.admin.description"}}
-        </p>
-      </div>
+      <DPageSubheader
+        @titleLabel={{i18n "cap_verification.admin.title"}}
+        @descriptionLabel={{i18n "cap_verification.admin.description"}}
+      />
 
       <div class="cap-status-row">
-        <span class="cap-status-badge {{@controller.statusClass}}">
-          {{@controller.statusLabel}}
+        <span class="cap-status-badge {{this.statusClass}}">
+          {{this.statusLabel}}
         </span>
-        {{#if @controller.failed_last_24h}}
+        {{#if this.model.failed_last_24h}}
           <span class="cap-status-meta">
             {{i18n
               "cap_verification.admin.failed_last_24h"
-              count=@controller.failed_last_24h
+              count=this.model.failed_last_24h
             }}
           </span>
         {{/if}}
       </div>
 
-      <form class="cap-form" {{on "submit" @controller.save}}>
+      <form class="cap-form" {{on "submit" this.save}}>
         <fieldset class="cap-section">
           <legend>{{i18n "cap_verification.admin.setup_heading"}}</legend>
 
@@ -42,8 +186,8 @@ export default RouteTemplate(
                 type="url"
                 class="cap-input"
                 placeholder="https://cap.example.com"
-                value={{@controller.fields.instance_url}}
-                {{on "input" (fn @controller.setField "instance_url")}}
+                value={{this.fields.instance_url}}
+                {{on "input" (fn this.setField "instance_url")}}
               />
               <p class="cap-hint">
                 {{i18n "cap_verification.admin.instance_url_help"}}
@@ -60,8 +204,8 @@ export default RouteTemplate(
                 id="cap-site-key"
                 type="text"
                 class="cap-input"
-                value={{@controller.fields.site_key}}
-                {{on "input" (fn @controller.setField "site_key")}}
+                value={{this.fields.site_key}}
+                {{on "input" (fn this.setField "site_key")}}
               />
               <p class="cap-hint">
                 {{i18n "cap_verification.admin.site_key_help"}}
@@ -80,16 +224,16 @@ export default RouteTemplate(
                 class="cap-input"
                 autocomplete="new-password"
                 placeholder={{if
-                  @controller.secret_key_set
+                  this.model.secret_key_set
                   (i18n "cap_verification.admin.secret_key_placeholder")
                 }}
-                value={{@controller.fields.secret_key}}
-                {{on "input" (fn @controller.setField "secret_key")}}
+                value={{this.fields.secret_key}}
+                {{on "input" (fn this.setField "secret_key")}}
               />
               <p class="cap-hint">
                 {{i18n "cap_verification.admin.secret_key_help"}}
               </p>
-              {{#if @controller.secret_key_set}}
+              {{#if this.model.secret_key_set}}
                 <p class="cap-hint cap-hint-ok">
                   {{i18n "cap_verification.admin.secret_key_set"}}
                 </p>
@@ -109,12 +253,12 @@ export default RouteTemplate(
               <select
                 id="cap-widget-theme"
                 class="cap-input"
-                {{on "change" (fn @controller.setField "widget_theme")}}
+                {{on "change" (fn this.setField "widget_theme")}}
               >
-                {{#each @controller.themes as |theme|}}
+                {{#each this.themes as |theme|}}
                   <option
                     value={{theme}}
-                    selected={{eq theme @controller.fields.widget_theme}}
+                    selected={{eq theme this.fields.widget_theme}}
                   >{{theme}}</option>
                 {{/each}}
               </select>
@@ -133,8 +277,8 @@ export default RouteTemplate(
                 id="cap-script-url"
                 type="text"
                 class="cap-input"
-                value={{@controller.fields.widget_script_url}}
-                {{on "input" (fn @controller.setField "widget_script_url")}}
+                value={{this.fields.widget_script_url}}
+                {{on "input" (fn this.setField "widget_script_url")}}
               />
               <p class="cap-hint">
                 {{i18n "cap_verification.admin.widget_script_url_help"}}
@@ -150,8 +294,8 @@ export default RouteTemplate(
             <label class="cap-checkbox">
               <input
                 type="checkbox"
-                checked={{@controller.fields.protect_signup}}
-                {{on "change" (fn @controller.toggleField "protect_signup")}}
+                checked={{this.fields.protect_signup}}
+                {{on "change" (fn this.toggleField "protect_signup")}}
               />
               <span>{{i18n "cap_verification.admin.protect_signup"}}</span>
             </label>
@@ -161,8 +305,8 @@ export default RouteTemplate(
             <label class="cap-checkbox">
               <input
                 type="checkbox"
-                checked={{@controller.fields.protect_login}}
-                {{on "change" (fn @controller.toggleField "protect_login")}}
+                checked={{this.fields.protect_login}}
+                {{on "change" (fn this.toggleField "protect_login")}}
               />
               <span>{{i18n "cap_verification.admin.protect_login"}}</span>
             </label>
@@ -172,8 +316,8 @@ export default RouteTemplate(
             <label class="cap-checkbox">
               <input
                 type="checkbox"
-                checked={{@controller.fields.skip_for_staff}}
-                {{on "change" (fn @controller.toggleField "skip_for_staff")}}
+                checked={{this.fields.skip_for_staff}}
+                {{on "change" (fn this.toggleField "skip_for_staff")}}
               />
               <span>{{i18n "cap_verification.admin.skip_for_staff"}}</span>
             </label>
@@ -190,8 +334,8 @@ export default RouteTemplate(
                 min="0"
                 max="4"
                 class="cap-input cap-input-small"
-                value={{@controller.fields.min_trust_level}}
-                {{on "input" (fn @controller.setField "min_trust_level")}}
+                value={{this.fields.min_trust_level}}
+                {{on "input" (fn this.setField "min_trust_level")}}
               />
               <p class="cap-hint">
                 {{i18n "cap_verification.admin.min_trust_level_help"}}
@@ -214,8 +358,8 @@ export default RouteTemplate(
                 min="1"
                 max="200"
                 class="cap-input cap-input-small"
-                value={{@controller.fields.max_attempts}}
-                {{on "input" (fn @controller.setField "max_attempts")}}
+                value={{this.fields.max_attempts}}
+                {{on "input" (fn this.setField "max_attempts")}}
               />
             </div>
           </div>
@@ -231,8 +375,8 @@ export default RouteTemplate(
                 min="1"
                 max="60"
                 class="cap-input cap-input-small"
-                value={{@controller.fields.timeout_seconds}}
-                {{on "input" (fn @controller.setField "timeout_seconds")}}
+                value={{this.fields.timeout_seconds}}
+                {{on "input" (fn this.setField "timeout_seconds")}}
               />
             </div>
           </div>
@@ -240,23 +384,21 @@ export default RouteTemplate(
 
         <div class="cap-actions">
           <DButton
-            @type="submit"
+            @action={{this.save}}
             @label="cap_verification.admin.save"
-            @disabled={{@controller.saving}}
+            @disabled={{this.saving}}
             class="btn-primary"
           />
           <DButton
-            @action={{@controller.testConnection}}
+            @action={{this.testConnection}}
             @label="cap_verification.admin.test"
-            @disabled={{@controller.testing}}
+            @disabled={{this.testing}}
           />
         </div>
       </form>
 
-      {{#if @controller.notice}}
-        <div class="cap-notice {{@controller.noticeClass}}">
-          {{@controller.notice}}
-        </div>
+      {{#if this.notice}}
+        <div class="cap-notice {{this.noticeClass}}">{{this.notice}}</div>
       {{/if}}
 
       <div class="cap-section cap-howto">
@@ -265,4 +407,4 @@ export default RouteTemplate(
       </div>
     </div>
   </template>
-);
+}

@@ -83,27 +83,36 @@ after_initialize do
   # Admin configuration screen
   # ---------------------------------------------------------------------
   #
-  # The slug becomes the Ember route name `adminPlugins.<slug>`, and Discourse
-  # derives the frontend file names from it by inserting `admin-plugins-`:
+  # Two things matter here, and both were wrong before.
   #
-  #   routes/admin-plugins-<slug>.js
-  #   controllers/admin-plugins-<slug>.js
-  #   templates/admin/plugins-<slug>.gjs
+  # 1. `use_new_show_route: true` — the modern plugin show page. This makes
+  #    full_location "adminPlugins.show", a CORE route, so the link in the
+  #    plugin list always resolves. With `false` the location becomes
+  #    "adminPlugins.<slug>", which only exists if the plugin mounts it, and
+  #    when it does not you get core's `admin.plugins.broken_route` alert:
+  #      Unable to configure link to '...'. Ensure ad-blockers are disabled...
+  #    No plugin in the Discourse repo still uses `false`.
   #
-  # (Note: hyphenated slugs do work - see discourse-data-explorer's
-  # "explorer-index". The earlier blank page came from a missing controller and
-  # a template that used @model without the route spreading the payload.)
+  # 2. The location MUST be the plugin's name (`# name:`, which equals the
+  #    installed directory name). Admin::PluginsController#show resolves the
+  #    page with:
+  #        Discourse.plugins_by_name[params[:plugin_id]]
+  #    and `plugins_by_name` is keyed by plugin name, not by an arbitrary slug.
+  #    Anything else 404s on /admin/plugins/<location>.json.
   #
-  # A single hyphen-free word keeps the generated names unambiguous, and the
-  # public URL stays /admin/plugins/capverification.
-  add_admin_route("cap_verification.admin.title", "capverification", {
-    use_new_show_route: false,
+  # The URL is therefore /admin/plugins/CloudRail-Cap, and the plugin's own
+  # page lives at /admin/plugins/CloudRail-Cap/verification (see the route map
+  # in assets/javascripts/discourse/cap-verification-route-map.js).
+  add_admin_route("cap_verification.admin.title", "CloudRail-Cap", {
+    use_new_show_route: true,
   })
 
+  # The settings API. Deliberately NOT under /admin/plugins/<plugin_id>, so it
+  # can never be shadowed by (or shadow) core's /admin/plugins/:plugin_id route.
   Discourse::Application.routes.append do
-    scope "/admin/plugins/capverification", constraints: StaffConstraint.new do
-      get "/" => "discourse_cap/admin#index"
-      put "/" => "discourse_cap/admin#update"
+    scope "/cap-verification", constraints: StaffConstraint.new do
+      get "/settings" => "discourse_cap/admin#index"
+      put "/settings" => "discourse_cap/admin#update"
       post "/test" => "discourse_cap/admin#test"
     end
   end

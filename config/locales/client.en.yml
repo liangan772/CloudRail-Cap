@@ -7,6 +7,8 @@ en:
       admin:
         title: "Cap Verification"
         nav_title: "Cap Verification"
+        tab_label: "Setup"
+        tab_description: "Connect Discourse to your Cap server, then choose what to protect."
         description: "Protect signup and login with Cap, a self-hosted proof-of-work CAPTCHA. No Google, no tracking, all data stays on your server."
         status_running: "Active - visitors are being challenged."
         status_incomplete: "Incomplete - enabled but credentials are missing, so the challenge is not shown."
