@@ -426,6 +426,66 @@ The admin screen is written against the `AdminPageHeader` / `DButton` component
 set. If core renames those, update
 `assets/javascripts/discourse/templates/admin/plugins-capverification.gjs`.
 
+### Checking the plugin without a Discourse checkout
+
+Two scripts catch the failure modes that are otherwise only visible in a
+browser. Both run against this repository alone.
+
+```bash
+# Validate every .gjs file with content-tag, the parser Discourse itself uses.
+# A parse error here means the whole plugin bundle is replaced by a
+# `throw new Error(...)` stub, so nothing in the plugin runs.
+node scripts/check-gjs.mjs
+
+# Exercise a live Cap server end to end: reachability, the four siteverify
+# outcomes, fail-closed classification, and network-failure handling.
+ruby scripts/probe-live-cap.rb
+```
+
+`check-gjs.mjs` needs `content-tag`; `probe-live-cap.rb` needs only the
+standard library.
+
+### Widget theming: what actually happens
+
+Cap's widget renders into a shadow root, so it does not inherit `background`
+or `color` from the page. Its built-in fallbacks are hard-coded light
+(`#fdfdfd` background, `#212121` text) and it implements no
+`prefers-color-scheme` handling. Leaving the CSS custom properties unset
+therefore puts a bright white box inside a dark forum — which is why all three
+modes set them:
+
+| Mode | Behaviour |
+| --- | --- |
+| `auto` | Uses Discourse's own variables (`--secondary`, `--primary`, …), so the widget follows the reader's selected colour scheme. |
+| `light` | Pinned light, even on a dark forum. |
+| `dark` | Pinned dark, even on a light forum. |
+
+Measured in Chromium against the real widget bundle:
+
+| Forum | Mode | Widget background |
+| --- | --- | --- |
+| light | `auto` | `rgb(255, 255, 255)` |
+| dark | `auto` | `rgb(31, 31, 31)` |
+| dark | `light` | `rgb(253, 253, 253)` |
+| light | `dark` | `rgb(31, 31, 31)` |
+
+### Translating the widget's own labels
+
+Cap's widget hard-codes its internal strings in English and reads overrides
+from `data-cap-i18n-*` attributes:
+
+```js
+getI18nText(key, defaultValue) {
+  return this.getAttribute(`data-cap-i18n-${key}`) || this.#i18n?.[key] || defaultValue;
+}
+```
+
+`cap-widget.gjs` feeds all twelve attributes from the locale files. The list
+was taken from the widget's source, not its documentation — the docs omit
+`group-aria-label`, which the widget does request. To add a locale, copy
+`config/locales/client.en.yml` and translate the `widget_*` keys under
+`cap_verification:`.
+
 ## Licence
 
 MIT
