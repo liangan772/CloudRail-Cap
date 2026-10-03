@@ -101,6 +101,21 @@ document.querySelectorAll(".cap-verification-widget").length   // 注册/登录�
 // 控制台不应再出现 "Compile error: Error: Parse Error at ..."
 ```
 
+### F) 伪造提交必须被拒（最关键的一项）
+
+前面 5 项只证明「前端渲染正常」。这一项才证明**服务端真的在拦人**。
+直接对着注册接口发请求，不带 token：
+
+```bash
+curl -s -o /dev/null -w "HTTP %{http_code}\n" \
+  -X POST "https://www.crbbsx.com/u.json" \
+  -H "Content-Type: application/json" -H "Accept: application/json" \
+  -d '{"name":"probe","email":"probe@example.com","password":"Zx9-Qw2-Kp7-Vt4","username":"probe1"}'
+```
+
+**必须是 `HTTP 403`。** 如果返回 `HTTP 200`，说明服务端校验根本没接上——
+这时前面 5 项再漂亮也没有意义。
+
 ---
 
 ## 5. 本次修复了什么
@@ -112,6 +127,7 @@ document.querySelectorAll(".cap-verification-widget").length   // 注册/登录�
 | 3 | 「测试连接」永远失败 | 旧 probe 发的 token 冒号数不是 2，被 `siteverify` 的 400 挡在密钥校验之前 | 实盘：2 冒号 → 403（到达密钥层），0/1 冒号 → 400 |
 | 4 | 深色论坛上是一块白块 | widget 在 shadow root 内，不继承外部配色；内置 fallback 硬编码浅色，且无 `prefers-color-scheme` | 浏览器实测深色页面下背景 `rgb(253,253,253)` |
 | 5 | 中文论坛显示英文 | widget 硬编码英文，只认 `data-cap-i18n-*` 属性 | 浏览器实测接入后渲染出「点击验证您是人类」 |
+| 6 | **不带 token 也能注册成功（HTTP 200）** | `add_to_class(:users_controller, :create)` 里的 `super()` 永远抛异常，拦截逻辑从未生效 | Ruby 3.3 原样复现：`NoMethodError: super: no superclass method \`create_without_enable_check'\`；裸 `super` → `RuntimeError: implicit argument passing of super ... not supported` |
 
 另外修掉：脚本 URL 未固定版本、`.cap-verification-misconfigured` 选择器
 永远匹配不到、后台组件给 `this.args.model` 赋值（严格 ESM 下抛错）。

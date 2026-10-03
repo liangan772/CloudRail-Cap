@@ -46,6 +46,7 @@ end
 # Zeitwerk::NameError during boot.
 require_relative "lib/discourse_cap/config"
 require_relative "lib/discourse_cap/verify"
+require_relative "lib/discourse_cap/controller_patches"
 
 after_initialize do
   # ---------------------------------------------------------------------
@@ -69,37 +70,63 @@ after_initialize do
   # check that flag. Discourse's own captcha plugin verifies out-of-band and
   # keeps the result server-side in the same way.
   #
-  add_to_class(:users_controller, :create) do
-    if SiteSetting.cap_verification_enabled && SiteSetting.cap_verification_protect_signup
-      begin
-        DiscourseCap::Verify.enforce_session!(
-          session: session,
-          remote_ip: request.remote_ip,
-          context: "signup",
-          actor: current_user,
-        )
-      rescue DiscourseCap::Verify::Failure => e
-        return render_json_error(I18n.t("cap_verification.errors.#{e.reason}"), status: 403)
-      end
-    end
-    super()
-  end
-
-  add_to_class(:session_controller, :create) do
-    if SiteSetting.cap_verification_enabled && SiteSetting.cap_verification_protect_login
-      begin
-        DiscourseCap::Verify.enforce_session!(
-          session: session,
-          remote_ip: request.remote_ip,
-          context: "login",
-          actor: current_user,
-        )
-      rescue DiscourseCap::Verify::Failure => e
-        return render_json_error(I18n.t("cap_verification.errors.#{e.reason}"), status: 403)
-      end
-    end
-    super()
-  end
+  # ---------------------------------------------------------------------------
+  # WHY THIS IS NOT `add_to_class`
+  # ---------------------------------------------------------------------------
+  #
+  # The tempting way to gate `UsersController#create` is:
+  #
+  #   add_to_class(:users_controller, :create) do
+  #     ...
+  #     super()
+  #   end
+  #
+  # That cannot ever work, and it fails in a way that is easy to misread as "the
+  # plugin is not enabled", because it depends on the *name* `add_to_class`
+  # invents for the block:
+  #
+  #   # lib/plugin/instance.rb
+  #   hidden_method_name = :"#{attr}_without_enable_check"     # create_without_enable_check
+  #   klass.public_send(:define_method, hidden_method_name, &block)
+  #   klass.public_send(:define_method, attr) do |*args, **kwargs|
+  #     public_send(hidden_method_name, *args, **kwargs) if plugin.enabled?
+  #   end
+  #
+  # `super` resolves the method name of the method it is running inside, so
+  # inside that block it looks for `create_without_enable_check` on the way up
+  # the ancestor chain. Nothing defines that name anywhere, so:
+  #
+  #   NoMethodError: super: no superclass method
+  #                  `create_without_enable_check' for an instance of
+  #                  UsersController
+  #
+  # and bare `super` is worse still:
+  #
+  #   RuntimeError: implicit argument passing of super from method defined by
+  #                 define_method() is not supported
+  #
+  # Both were reproduced against Ruby 3.3 with a verbatim copy of the
+  # implementation above; `scripts/check-super-trap.rb` keeps that reproduction
+  # so the mistake cannot come back.
+  #
+  # `add_to_class` is fine for ADDING a method. It cannot WRAP an existing one.
+  #
+  # Core's own plugins wrap controller actions with `reloadable_patch` instead:
+  #
+  #   # plugins/discourse-captcha/plugin.rb
+  #   reloadable_patch { UsersController.include(DiscourseCaptcha::CreateUsersControllerPatch) }
+  #   reloadable_patch { SessionController.prepend(DiscourseCaptcha::SessionControllerPatch) }
+  #
+  # and the patch adds a `before_action` rather than overriding the action:
+  #
+  #   # plugins/discourse-captcha/lib/discourse_captcha/create_users_controller_patch.rb
+  #   included { before_action :check_captcha, only: [:create] }
+  #
+  # A `before_action` needs no `super`, so none of the above applies. That is
+  # the pattern used here.
+  #
+  reloadable_patch { ::UsersController.include(DiscourseCap::UsersControllerPatch) }
+  reloadable_patch { ::SessionController.include(DiscourseCap::SessionControllerPatch) }
 
   # Expose the plugin's public configuration to the client so the widget
   # component knows which instance + site key to talk to. This lands on the
